@@ -1,0 +1,104 @@
+version: '3.9'
+
+services:
+  micro-sender:
+    image: micro-sernder:lts
+    container_name: micro-sernder
+    build:
+      context: micro-sender
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - sender
+    ports:
+      - "8080:8080"
+
+  micro-recipient:
+    image: micro-recipient:lts
+    container_name: micro-recipient
+    build:
+      context: micro-recipient
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - recipient
+    ports:
+      - "8081:8081"
+
+  micro-collector:
+    image: micro-collector:lts
+    container_name: micro-collector
+    build:
+      context: micro-collector
+      dockerfile: Dockerfile
+    restart: on-failure
+    networks:
+      - recipient
+    ports:
+      - "8082:8082"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - sender
+      - recipient
+
+  prometheus:
+    image: prom/prometheus:v2.17.1
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    expose:
+      - 9090
+    networks:
+      - sender
+      - recipient
+    labels:
+      org.label-schema.group: "monitoring"
+
+  grafana:
+    image: grafana/grafana:6.7.2
+    container_name: grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    expose:
+      - 3000
+    networks:
+      - sender
+      - recipient
+    labels:
+      org.label-schema.group: "monitoring"
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  sender:
+    driver: bridge
+  recipient:
+    driver: bridge

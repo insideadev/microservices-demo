@@ -1,0 +1,13 @@
+apiVersion: v1 # k8s API version
+kind: Service
+metadata:
+  name: micro-collector
+spec:
+  selector:
+    app: micro-collector
+  type: LoadBalancer # type of the service
+  ports:
+    - protocol: TCP
+      port: 80 # the port that the service is running on in the cluster
+      targetPort: 8082 # the port exposed by the container
+      nodePort: 30000
