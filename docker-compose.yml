@@ -2,8 +2,8 @@ version: '3.9'
 
 services:
   micro-sender:
-    image: micro-sernder:lts
-    container_name: micro-sernder
+    image: micro-sender:lts
+    container_name: micro-sender
     build:
       context: micro-sender
       dockerfile: Dockerfile
